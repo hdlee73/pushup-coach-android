@@ -51,6 +51,7 @@
 
             <Button android:id="@+id/startButton" android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="24dp" android:background="@drawable/button_bg" android:text="카메라 운동 시작" android:textColor="@color/navy" android:textSize="18sp" android:textStyle="bold" />
             <Button android:id="@+id/goalButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="10dp" android:text="일일 목표 변경" android:textColor="@color/white" />
+            <Button android:id="@+id/statsButton" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="8dp" android:text="일별 · 주별 · 월별 통계" android:textColor="@color/white" />
 
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="28dp" android:text="최근 기록" android:textColor="@color/white" android:textSize="20sp" android:textStyle="bold" />
             <LinearLayout android:id="@+id/historyList" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:orientation="vertical" />
@@ -63,6 +64,7 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="top" android:gravity="center" android:orientation="vertical" android:paddingTop="50dp">
             <TextView android:id="@+id/liveCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/white" android:textSize="72sp" android:textStyle="bold" android:shadowColor="#80000000" android:shadowRadius="8" />
             <TextView android:id="@+id/liveGoal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="오늘 목표 30개" android:textColor="@color/white" android:textSize="16sp" />
+            <TextView android:id="@+id/setupText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/card_bg" android:paddingStart="14dp" android:paddingTop="8dp" android:paddingEnd="14dp" android:paddingBottom="8dp" android:text="● 셋업 대기" android:textColor="@color/warning" android:textSize="15sp" android:textStyle="bold" />
         </LinearLayout>
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="bottom" android:gravity="center" android:orientation="vertical" android:padding="24dp">
             <TextView android:id="@+id/feedbackText" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/card_bg" android:gravity="center" android:padding="16dp" android:text="몸 전체가 보이도록 옆으로 놓아주세요" android:textColor="@color/white" android:textSize="17sp" android:textStyle="bold" />

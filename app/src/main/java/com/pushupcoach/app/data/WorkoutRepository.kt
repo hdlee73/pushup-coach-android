@@ -41,7 +41,7 @@ class WorkoutRepository(context: Context) {
             goal = goal(),
             streak = calculateStreak(all, today),
             total = all.sumOf { it.count },
-            history = all.take(14)
+            history = all
         )
     }
 

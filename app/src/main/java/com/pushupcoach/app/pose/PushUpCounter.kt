@@ -13,36 +13,50 @@ data class PushUpResult(
     val feedback: String,
     val elbowAngle: Float? = null,
     val bodyAngle: Float? = null,
-    val formGood: Boolean = false
+    val formGood: Boolean = false,
+    val setupReady: Boolean = false
 )
 
 /** Stateful repetition detector with hysteresis, visibility checks and a short debounce. */
 class PushUpCounter(
     private val downThreshold: Float = 110f,
     private val upThreshold: Float = 145f,
-    private val minimumBodyAngle: Float = 135f,
-    private val debounceMs: Long = 450L
+    private val debounceMs: Long = 450L,
+    private val setupHoldMs: Long = 700L,
+    private val trackingGraceMs: Long = 1200L
 ) {
     private var phase = PushUpPhase.WAITING
     private var lastRepAt = 0L
+    private var setupStartedAt = 0L
+    private var lastTrackedAt = 0L
+    private var setupReady = false
 
-    fun reset() { phase = PushUpPhase.WAITING; lastRepAt = 0L }
+    fun reset() {
+        phase = PushUpPhase.WAITING
+        lastRepAt = 0L
+        setupStartedAt = 0L
+        lastTrackedAt = 0L
+        setupReady = false
+    }
 
     fun update(landmarks: List<Point3>, timestampMs: Long): PushUpResult {
-        if (landmarks.size < 33) return result("몸 전체가 보이도록 옆으로 놓아주세요")
+        if (landmarks.size < 33) return trackingLost(timestampMs)
 
-        val side = chooseSide(landmarks) ?: return result("어깨, 팔, 골반과 발목이 보이게 해주세요")
+        val side = chooseSide(landmarks) ?: return trackingLost(timestampMs)
         val shoulder = landmarks[if (side == 0) 11 else 12]
         val elbow = landmarks[if (side == 0) 13 else 14]
         val wrist = landmarks[if (side == 0) 15 else 16]
-        val hip = landmarks[if (side == 0) 23 else 24]
-        val ankle = landmarks[if (side == 0) 27 else 28]
+
+        lastTrackedAt = timestampMs
+        if (!setupReady) {
+            if (setupStartedAt == 0L) setupStartedAt = timestampMs
+            if (timestampMs - setupStartedAt < setupHoldMs) {
+                return result("상체 자세를 확인하고 있어요…", setup = false)
+            }
+            setupReady = true
+        }
 
         val elbowAngle = angle(shoulder, elbow, wrist)
-        val bodyAngle = angle(shoulder, hip, ankle)
-        if (bodyAngle < minimumBodyAngle) {
-            return result("엉덩이를 낮추고 몸을 일직선으로 만드세요", elbowAngle, bodyAngle)
-        }
 
         var counted = false
         var feedback = "팔을 굽혀 천천히 내려가세요"
@@ -64,19 +78,30 @@ class PushUpCounter(
             phase == PushUpPhase.DOWN -> feedback = "조금만 더 밀어 올리세요"
             else -> feedback = "팔꿈치가 90도가 될 때까지 내려가세요"
         }
-        return PushUpResult(phase, counted, feedback, elbowAngle, bodyAngle, true)
+        return PushUpResult(phase, counted, feedback, elbowAngle, null, true, true)
     }
 
     private fun chooseSide(points: List<Point3>): Int? {
         fun score(indices: IntArray) = indices.minOf { points[it].visibility }
-        val left = score(intArrayOf(11, 13, 15, 23, 27))
-        val right = score(intArrayOf(12, 14, 16, 24, 28))
+        if (points[0].visibility < 0.30f) return null
+        val left = score(intArrayOf(11, 13, 15))
+        val right = score(intArrayOf(12, 14, 16))
         val best = if (left >= right) 0 else 1
-        return if (maxOf(left, right) >= 0.40f) best else null
+        return if (maxOf(left, right) >= 0.35f) best else null
     }
 
-    private fun result(message: String, elbow: Float? = null, body: Float? = null) =
-        PushUpResult(phase, false, message, elbow, body, false)
+    private fun trackingLost(timestampMs: Long): PushUpResult {
+        if (setupReady && timestampMs - lastTrackedAt <= trackingGraceMs) {
+            return result("잠시 가려졌어요. 자세를 유지하세요", setup = true)
+        }
+        setupReady = false
+        setupStartedAt = 0L
+        phase = PushUpPhase.WAITING
+        return result("머리, 어깨와 팔이 보이게 해주세요", setup = false)
+    }
+
+    private fun result(message: String, elbow: Float? = null, setup: Boolean = setupReady) =
+        PushUpResult(phase, false, message, elbow, null, setup, setup)
 
     private fun angle(a: Point3, vertex: Point3, c: Point3): Float {
         val abx = a.x - vertex.x; val aby = a.y - vertex.y; val abz = a.z - vertex.z

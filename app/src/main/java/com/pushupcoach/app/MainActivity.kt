@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.temporal.WeekFields
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -46,6 +47,7 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
     private var sessionCount = 0
     private var todayCount = 0
     private var currentGoal = 30
+    private var cachedHistory: List<DailyWorkout> = emptyList()
     private var workoutVisible = false
 
     private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -64,6 +66,7 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
         binding.startButton.setOnClickListener { requestWorkout() }
         binding.finishButton.setOnClickListener { closeWorkout() }
         binding.goalButton.setOnClickListener { showGoalDialog() }
+        binding.statsButton.setOnClickListener { showStatistics() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() { if (workoutVisible) closeWorkout() else finish() }
         })
@@ -84,6 +87,8 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
         binding.liveCount.text = "0"
         binding.liveGoal.text = "오늘 목표 ${currentGoal}개 · 현재 ${todayCount}개"
         binding.feedbackText.text = "몸 전체가 보이도록 휴대폰을 옆에 놓아주세요"
+        binding.setupText.text = "● 셋업 대기"
+        binding.setupText.setTextColor(ContextCompat.getColor(this, R.color.warning))
         startCamera()
     }
 
@@ -123,6 +128,8 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
             binding.poseOverlay.update(points)
             binding.feedbackText.text = evaluation.feedback
             binding.feedbackText.setTextColor(ContextCompat.getColor(this, if (evaluation.formGood) R.color.white else R.color.warning))
+            binding.setupText.text = if (evaluation.setupReady) "● 셋업 완료 · 카운팅 준비" else "● 셋업 대기"
+            binding.setupText.setTextColor(ContextCompat.getColor(this, if (evaluation.setupReady) R.color.mint else R.color.warning))
             if (evaluation.counted) recordRep()
         }
     }
@@ -153,6 +160,7 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
     private fun refreshDashboard() = lifecycleScope.launch {
         val data = withContext(Dispatchers.IO) { repository.dashboard() }
         todayCount = data.todayCount; currentGoal = data.goal
+        cachedHistory = data.history
         binding.todayCount.text = data.todayCount.toString()
         binding.goalCount.text = " / ${data.goal}개"
         val percentage = if (data.goal == 0) 0 else (data.todayCount * 100 / data.goal).coerceAtMost(100)
@@ -193,6 +201,34 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
                 val value = input.text.toString().toIntOrNull()?.coerceIn(1, 1000) ?: return@setPositiveButton
                 lifecycleScope.launch { withContext(Dispatchers.IO) { repository.setGoal(value) }; refreshDashboard() }
             }.setNegativeButton("취소", null).show()
+    }
+
+    private fun showStatistics() {
+        val today = LocalDate.now()
+        val byDate = cachedHistory.associateBy { LocalDate.parse(it.date) }
+        val daily = (0L..6L).map { offset ->
+            val date = today.minusDays(offset)
+            "${date.format(DateTimeFormatter.ofPattern("M/d"))}  ${byDate[date]?.count ?: 0}개"
+        }.reversed().joinToString("\n")
+
+        val weekFields = WeekFields.of(Locale.KOREAN)
+        val weekly = cachedHistory.groupBy {
+            val date = LocalDate.parse(it.date)
+            date.get(weekFields.weekBasedYear()) to date.get(weekFields.weekOfWeekBasedYear())
+        }.entries.sortedWith(compareBy({ it.key.first }, { it.key.second })).takeLast(8)
+            .joinToString("\n") { "${it.key.first}년 ${it.key.second}주  ${it.value.sumOf(DailyWorkout::count)}개" }
+            .ifEmpty { "기록 없음" }
+
+        val monthly = cachedHistory.groupBy { LocalDate.parse(it.date).withDayOfMonth(1) }
+            .entries.sortedBy { it.key }.takeLast(6)
+            .joinToString("\n") { "${it.key.format(DateTimeFormatter.ofPattern("yyyy년 M월"))}  ${it.value.sumOf(DailyWorkout::count)}개" }
+            .ifEmpty { "기록 없음" }
+
+        AlertDialog.Builder(this)
+            .setTitle("운동 통계")
+            .setMessage("일별 · 최근 7일\n$daily\n\n주별\n$weekly\n\n월별\n$monthly")
+            .setPositiveButton("확인", null)
+            .show()
     }
 
     override fun onInit(status: Int) { if (status == TextToSpeech.SUCCESS) tts?.language = Locale.KOREAN }
