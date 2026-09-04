@@ -18,9 +18,9 @@ data class PushUpResult(
 
 /** Stateful repetition detector with hysteresis, visibility checks and a short debounce. */
 class PushUpCounter(
-    private val downThreshold: Float = 95f,
-    private val upThreshold: Float = 155f,
-    private val minimumBodyAngle: Float = 150f,
+    private val downThreshold: Float = 110f,
+    private val upThreshold: Float = 145f,
+    private val minimumBodyAngle: Float = 135f,
     private val debounceMs: Long = 450L
 ) {
     private var phase = PushUpPhase.WAITING
@@ -72,7 +72,7 @@ class PushUpCounter(
         val left = score(intArrayOf(11, 13, 15, 23, 27))
         val right = score(intArrayOf(12, 14, 16, 24, 28))
         val best = if (left >= right) 0 else 1
-        return if (maxOf(left, right) >= 0.55f) best else null
+        return if (maxOf(left, right) >= 0.40f) best else null
     }
 
     private fun result(message: String, elbow: Float? = null, body: Float? = null) =

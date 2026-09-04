@@ -29,9 +29,9 @@ class PoseLandmarkerHelper(
             .setBaseOptions(base)
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumPoses(1)
-            .setMinPoseDetectionConfidence(0.55f)
-            .setMinPosePresenceConfidence(0.55f)
-            .setMinTrackingConfidence(0.55f)
+            .setMinPoseDetectionConfidence(0.45f)
+            .setMinPosePresenceConfidence(0.45f)
+            .setMinTrackingConfidence(0.45f)
             .setResultListener(::returnResult)
             .setErrorListener { listener.onError(it.message ?: "자세 인식 오류") }
             .build()
