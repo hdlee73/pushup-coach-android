@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PushUpCoach" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/mint</item>
+        <item name="colorPrimaryVariant">@color/mint_dark</item>
+        <item name="colorOnPrimary">@color/navy</item>
+        <item name="colorSurface">@color/navy_surface</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/navy</item>
+        <item name="android:navigationBarColor">@color/navy</item>
+    </style>
+</resources>
