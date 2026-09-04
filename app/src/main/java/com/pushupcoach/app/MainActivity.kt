@@ -102,13 +102,15 @@ class MainActivity : AppCompatActivity(), PoseLandmarkerHelper.Listener, TextToS
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build().also { useCase ->
                     useCase.setAnalyzer(cameraExecutor) { image ->
-                        try { landmarker?.detect(image, false) ?: image.close() }
+                        try { landmarker?.detect(image, true) ?: image.close() }
                         catch (_: Exception) { image.close() }
                     }
                 }
             try {
                 cameraProvider?.unbindAll()
-                cameraProvider?.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
+                // Use the selfie camera so the athlete can see live feedback while exercising.
+                // CameraX resolves the correct front-facing camera for the active Fold display.
+                cameraProvider?.bindToLifecycle(this, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis)
             } catch (e: Exception) { binding.feedbackText.text = "카메라를 시작하지 못했어요" }
         }, ContextCompat.getMainExecutor(this))
     }
